@@ -4480,49 +4480,10 @@ static NSComparisonResult sortedArrayUsingBlockHelper(id a, id b, void *context)
             switch (c) {
                 case 0x07: [result appendString:@"\\a"]; break;
                 case 0x08: [result appendString:@"\\b"]; break;
-                case 0x09: /*[result appendString:@"\\t"];*/ break;
-                case 0x0a: /*[result appendString:@"\\n"];*/ break;
+                case 0x09: [result appendString:@"\\t"]; break;
+                case 0x0a: [result appendString:@"\\n"]; break;
                 case 0x0c: [result appendString:@"\\f"]; break;
-                case 0x0d: /*[result appendString:@"\\r"];*/ break;
-                case 0x1b: [result appendString:@"\\e"]; break;
-                default:
-                    [result appendFormat:@"\\x%02x", c];
-            }
-        }
-        else if (c == '"') {
-            [result appendString:@"\\\""];
-        }
-        else if (c == '\\') {
-            [result appendString:@"\\\\"];
-        }
-        else if (c < 127) {
-            [result appendCharacter:c];
-        }
-        else if (c < 256) {
-            [result appendFormat:@"\\x%02x", c];
-        }
-        else {
-            [result appendFormat:@"\\u%04x", c];
-        }
-    }
-    [result appendString:@"\""];
-    return result;
-}
-
-- (NSString *) partiallyEscapedStringRepresentation
-{
-    NSMutableString *result = [NSMutableString stringWithString:@"\""];
-    NSUInteger length = [self length];
-    for (int i = 0; i < length; i++) {
-        unichar c = [self characterAtIndex:i];
-        if (c < 32) {
-            switch (c) {
-                case 0x07: [result appendString:@"\\a"]; break;
-                case 0x08: [result appendString:@"\\b"]; break;
-                    //case 0x09: [result appendString:@"\\t"]; break;
-                    //case 0x0a: [result appendString:@"\\n"]; break;
-                case 0x0c: [result appendString:@"\\f"]; break;
-                    //case 0x0d: [result appendString:@"\\r"]; break;
+                case 0x0d: [result appendString:@"\\r"]; break;
                 case 0x1b: [result appendString:@"\\e"]; break;
                 default:
                     [result appendFormat:@"\\x%02x", c];
@@ -10014,7 +9975,8 @@ static NSUInteger nu_parse_escape_sequences(NSString *string, NSUInteger i, NSUI
         system("stty -echo"); // Turn off echoing to avoid duplicated input. Surely there's a better way to do this.
         puts("It looks like you are running in the Xcode debugger console. Beware: command history is broken.");
     }
-    
+
+    id last_result = nil;
     do {
         NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
         char *prompt = ([self incomplete] ? "- " : "% ");
@@ -10029,6 +9991,12 @@ static NSUInteger nu_parse_escape_sequences(NSString *string, NSUInteger i, NSUI
 #endif
         if(!line || !strcmp(line, "quit")) {
             break;
+        }
+        else if (line && !strcmp (line, "*"))
+        {
+            if (last_result) {
+                printf("%s\n", [[last_result description] UTF8String]);
+            }
         }
         else {
             id progn = nil;
@@ -10059,6 +10027,11 @@ static NSUInteger nu_parse_escape_sequences(NSString *string, NSUInteger i, NSUI
                         {
                             id result = [expression evalWithContext:context];
                             if (result) {
+                                if (last_result != result) {
+                                    [last_result release];
+                                    last_result = [result retain];
+                                }
+
                                 id stringToDisplay;
                                 if ([result respondsToSelector:@selector(escapedStringRepresentation)]) {
                                     stringToDisplay = [result escapedStringRepresentation];
@@ -10085,7 +10058,9 @@ static NSUInteger nu_parse_escape_sequences(NSString *string, NSUInteger i, NSUI
         }
         [pool release];
     } while(1);
-    
+
+    [last_result release];
+
     if (valid_history_file) {
         write_history(history_file);
     }
