@@ -9,3 +9,12 @@ libNu.a
 .DS_Store
 doc
 examples/*/*.app
+Xcode/Nu.xcodeproj/xcuserdata/sasha.xcuserdatad/xcschemes/NuApp.xcscheme
+
+Xcode/Nu.xcodeproj/project.xcworkspace/xcuserdata/sasha.xcuserdatad/UserInterfaceState.xcuserstate
+
+Xcode/Nu.xcodeproj/xcuserdata/sasha.xcuserdatad/xcschemes/Nu.xcscheme
+
+Xcode/Nu.xcodeproj/xcuserdata/sasha.xcuserdatad/xcschemes/nush.xcscheme
+
+Xcode/Nu.xcodeproj/xcuserdata/sasha.xcuserdatad/xcschemes/xcschememanagement.plist

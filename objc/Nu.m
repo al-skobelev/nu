@@ -4097,6 +4097,20 @@ static BOOL NuException_verboseExceptionReporting = NO;
     return a;
 }
 
+- (id) at: (NSInteger) i
+{
+    if (i < 0) {
+        // if the index is negative, index from the end of the array
+        i += [self count];
+    }
+    if ((i < [self count]) && (i >= 0)) {
+        return [self objectAtIndex: i];
+    }
+    else {
+        return Nu__null;
+    }
+}
+
 // When an unknown message is received by an array, treat it as a call to objectAtIndex:
 - (id) handleUnknownMessage:(NuCell *) method withContext:(NSMutableDictionary *) context
 {
@@ -4210,6 +4224,18 @@ static NSComparisonResult sortedArrayUsingBlockHelper(id a, id b, void *context)
 
 @implementation NSMutableArray(Nu)
 
+- (void) at: (NSInteger) i to: (id) obj
+{
+    if (i < 0) {
+        // if the index is negative, index from the end of the array
+        i += [self count];
+    }
+    if ((i < [self count]) && (i >= 0)) {
+        if (obj) [self insertObject: obj atIndex: i];
+        else [self removeObjectAtIndex: i];
+   }
+}
+
 - (void) addObjectsFromList:(id)list
 {
     [self addObjectsFromArray:[NSArray arrayWithList:list]];
@@ -4304,6 +4330,13 @@ static NSComparisonResult sortedArrayUsingBlockHelper(id a, id b, void *context)
     return value ? value : defaultValue;
 }
 
+- (id) key: (id) key
+{
+    id val = nil;
+    if (key) val = [self objectForKey: key];
+    return (val ?: Nu__null);
+}
+
 // When an unknown message is received by a dictionary, treat it as a call to objectForKey:
 - (id) handleUnknownMessage:(NuCell *) method withContext:(NSMutableDictionary *) context
 {
@@ -4384,6 +4417,14 @@ static NSComparisonResult sortedArrayUsingBlockHelper(id a, id b, void *context)
     [self setObject:((anObject == nil) ? (id)[NSNull null] : anObject) forKey:aKey];
 }
 
+- (void) key: (id) key to: (id) val
+{
+    if (key) {
+        if (val) [self setObject: val forKey: key];
+        else     [self removeObjectForKey: key];
+    }
+}
+
 @end
 
 @interface NuStringEnumerator : NSEnumerator
@@ -4439,10 +4480,49 @@ static NSComparisonResult sortedArrayUsingBlockHelper(id a, id b, void *context)
             switch (c) {
                 case 0x07: [result appendString:@"\\a"]; break;
                 case 0x08: [result appendString:@"\\b"]; break;
-                case 0x09: [result appendString:@"\\t"]; break;
-                case 0x0a: [result appendString:@"\\n"]; break;
+                case 0x09: /*[result appendString:@"\\t"];*/ break;
+                case 0x0a: /*[result appendString:@"\\n"];*/ break;
                 case 0x0c: [result appendString:@"\\f"]; break;
-                case 0x0d: [result appendString:@"\\r"]; break;
+                case 0x0d: /*[result appendString:@"\\r"];*/ break;
+                case 0x1b: [result appendString:@"\\e"]; break;
+                default:
+                    [result appendFormat:@"\\x%02x", c];
+            }
+        }
+        else if (c == '"') {
+            [result appendString:@"\\\""];
+        }
+        else if (c == '\\') {
+            [result appendString:@"\\\\"];
+        }
+        else if (c < 127) {
+            [result appendCharacter:c];
+        }
+        else if (c < 256) {
+            [result appendFormat:@"\\x%02x", c];
+        }
+        else {
+            [result appendFormat:@"\\u%04x", c];
+        }
+    }
+    [result appendString:@"\""];
+    return result;
+}
+
+- (NSString *) partiallyEscapedStringRepresentation
+{
+    NSMutableString *result = [NSMutableString stringWithString:@"\""];
+    NSUInteger length = [self length];
+    for (int i = 0; i < length; i++) {
+        unichar c = [self characterAtIndex:i];
+        if (c < 32) {
+            switch (c) {
+                case 0x07: [result appendString:@"\\a"]; break;
+                case 0x08: [result appendString:@"\\b"]; break;
+                    //case 0x09: [result appendString:@"\\t"]; break;
+                    //case 0x0a: [result appendString:@"\\n"]; break;
+                case 0x0c: [result appendString:@"\\f"]; break;
+                    //case 0x0d: [result appendString:@"\\r"]; break;
                 case 0x1b: [result appendString:@"\\e"]; break;
                 default:
                     [result appendFormat:@"\\x%02x", c];
@@ -4693,6 +4773,28 @@ static NSComparisonResult sortedArrayUsingBlockHelper(id a, id b, void *context)
 @end
 
 @implementation NSNumber(Nu)
+
+- (NSString*) stringWithFormat: (NSString*) fmt
+{
+    NSString* str = @"";
+    if (fmt.length) 
+    {
+        char num_type = [self objCType][0]; 
+        str = ((num_type == 'c') ? [NSString stringWithFormat: fmt, [self charValue]] :
+               (num_type == 'C') ? [NSString stringWithFormat: fmt, [self unsignedCharValue]] :
+               (num_type == 's') ? [NSString stringWithFormat: fmt, [self shortValue]] :
+               (num_type == 'S') ? [NSString stringWithFormat: fmt, [self unsignedShortValue]] :
+               (num_type == 'i') ? [NSString stringWithFormat: fmt, [self intValue]] :
+               (num_type == 'I') ? [NSString stringWithFormat: fmt, [self unsignedIntValue]] :
+               (num_type == 'l') ? [NSString stringWithFormat: fmt, [self longValue]] :
+               (num_type == 'L') ? [NSString stringWithFormat: fmt, [self unsignedLongValue]] :
+               (num_type == 'q') ? [NSString stringWithFormat: fmt, [self longLongValue]] :
+               (num_type == 'Q') ? [NSString stringWithFormat: fmt, [self unsignedLongLongValue]] :
+               (num_type == 'f') ? [NSString stringWithFormat: fmt, [self floatValue]] :
+               (num_type == 'd') ? [NSString stringWithFormat: fmt, [self doubleValue]] : nil);
+    }
+    return str;
+}
 
 - (id) times:(id) block
 {

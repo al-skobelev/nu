@@ -880,6 +880,9 @@
 /*! Creates an array that contains the contents of a specified list. */
 + (NSArray *) arrayWithList:(id) list;
 
+/*! Like objectAtIndex: with bounds check. If i<0 count index from the end of array */
+- (id) at: (NSInteger) i;
+
 /*! Sort an array using its elements' compare: method. */
 - (NSArray *) sort;
 
@@ -904,6 +907,12 @@
  @abstract NSMutableArray extensions for Nu programming.
  */
 @interface NSMutableArray(Nu)
+
+/*! 
+ It is like insertObject:atIndex: or removeObjectAtIndex: with bounds check, 
+ depending on either OBJ is NIL or not. If i<0 count index from the end of array */
+- (void) at: (NSInteger) i to: (id) obj;
+
 /*! Add the objects from the specified list to the array. */
 - (void) addObjectsFromList:(id)list;
 /*! Add an object to an array, automatically converting nil into [NSNull null]. */
@@ -924,6 +933,10 @@
 + (NSDictionary *) dictionaryWithList:(id) list;
 /*! Look up an object by key, returning the specified default if no object is found. */
 - (id) objectForKey:(id)key withDefault:(id)defaultValue;
+
+/*! Like objectForKey:. Return nil if key is nil. */
+- (id) key: (id) key;
+
 @end
 
 /*!
@@ -940,6 +953,12 @@
 - (id) lookupObjectForKey:(id)key;
 /*! Add an object to a dictionary, automatically converting nil into [NSNull null]. */
 - (void) setPossiblyNullObject:(id) anObject forKey:(id) aKey;
+
+/*! 
+ Like setObject:ForKey: or removeObjectForKey: depending on either obj is nil or not. 
+ Do nothing if key is nil.
+*/
+- (void) key: (id) key to: (id) obj;
 
 @end
 
@@ -968,6 +987,12 @@
  @abstract NSNumber extensions for Nu programming.
  */
 @interface NSNumber(Nu)
+
+/*!
+ Return string representation with format given as an argument.  
+ */
+- (NSString*) stringWithFormat: (NSString*) fmt;
+
 /*!
  Iterate a number of times corresponding to the message receiver.
  On each iteration, evaluate the given block after passing in the iteration count.
