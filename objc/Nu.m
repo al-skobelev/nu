@@ -9976,7 +9976,6 @@ static NSUInteger nu_parse_escape_sequences(NSString *string, NSUInteger i, NSUI
         puts("It looks like you are running in the Xcode debugger console. Beware: command history is broken.");
     }
 
-    id last_result = nil;
     do {
         NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
         char *prompt = ([self incomplete] ? "- " : "% ");
@@ -9991,12 +9990,6 @@ static NSUInteger nu_parse_escape_sequences(NSString *string, NSUInteger i, NSUI
 #endif
         if(!line || !strcmp(line, "quit")) {
             break;
-        }
-        else if (line && !strcmp (line, "*"))
-        {
-            if (last_result) {
-                printf("%s\n", [[last_result description] UTF8String]);
-            }
         }
         else {
             id progn = nil;
@@ -10027,10 +10020,7 @@ static NSUInteger nu_parse_escape_sequences(NSString *string, NSUInteger i, NSUI
                         {
                             id result = [expression evalWithContext:context];
                             if (result) {
-                                if (last_result != result) {
-                                    [last_result release];
-                                    last_result = [result retain];
-                                }
+                                [self setValue: result forKey: @"$?"];
 
                                 id stringToDisplay;
                                 if ([result respondsToSelector:@selector(escapedStringRepresentation)]) {
@@ -10058,8 +10048,6 @@ static NSUInteger nu_parse_escape_sequences(NSString *string, NSUInteger i, NSUI
         }
         [pool release];
     } while(1);
-
-    [last_result release];
 
     if (valid_history_file) {
         write_history(history_file);
