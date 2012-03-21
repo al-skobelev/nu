@@ -84,6 +84,7 @@
 
 (require 'cl)
 (require 'lisp-mode)
+(require 'subword)
 
 (autoload 'run-nush "nush" "Run an inferior Nush process." t)
 (autoload 'switch-to-nush "nush" "Switch to an inferior Nush process." t)
@@ -177,7 +178,7 @@ See `run-hooks'."
 (defvar nu-heredoc-beg-re "<<[+-]\\(\\(?:\\w\\|\\s_\\)+\\)\\(\n\\)?")
 ;;                                 1                        2
 (defvar nu-heredoc-re
-  "<<[+-]\\(\\(?:\\w\\|\\s_\\)+?\\)\\(?:\\(?:\\(\n\\)\\(\n\\|\\([][{}\"#()?]\\)\\|\\(/\\)\\|.\\)+?\\)\\|\\(?:\n\\)\\)\\(\\1\\>\\)")
+  "<<[+-]\\(\\(?:\\w\\|\\s_\\)+?\\)\\(?:\\(?:\\(\n\\)\\(\n\\|\\([][{}\"#()?]\\)\\|\\(/\\)\\|.\\)+?\\)\\|\\(?:\n\\)\\)\\(\\<\\1\\>\\)")
 ;;         1                                   2       3       4                    5                                  6
                       
 (defvar nu-regexp-root-re "\\(/\\)\\(?:[^ \t\n\\]\\|\\(?:[^ \t\n].*?[^\\]\\)\\)?\\(/\\)")
@@ -269,7 +270,7 @@ See `run-hooks'."
   (setq major-mode 'nu-mode)
   (setq mode-name "Nu")
   (nu-mode-variables)
-  (c-subword-mode t)
+  (if (fboundp 'subword-mode) (subword-mode t) (c-subword-mode t))
   (run-mode-hooks 'nu-mode-hook))
 
 

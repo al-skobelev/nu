@@ -4083,6 +4083,16 @@ static BOOL NuException_verboseExceptionReporting = NO;
     return [[self stringValue] cStringUsingEncoding:encoding];
 }
 
+- (id) car
+{
+    return Nu__null;
+}
+
+- (id) cdr
+{
+    return Nu__null;
+}
+
 @end
 
 @implementation NSArray(Nu)

@@ -870,6 +870,11 @@
 - (NSUInteger) count;
 /*! nil converts to an empty array. */
 - (NSMutableArray *) array;
+
+- (id) car;
+/*! Get the cdr of a NuCell. */
+- (id) cdr;
+
 @end
 
 /*!
