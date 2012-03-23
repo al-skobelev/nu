@@ -9136,6 +9136,7 @@ static id regexWithString(NSString *string)
     bool addToCar;
     NSMutableString *hereString;
     bool hereStringOpened;
+    BOOL skipSpacesAfterNL;
     NuStack *stack;
     NuStack *opens;
     NuSymbolTable *symbolTable;
@@ -9178,7 +9179,7 @@ static id regexWithString(NSString *string)
 
 - (BOOL) incomplete
 {
-    return (depth > 0) || (state == PARSE_REGEX) || (state == PARSE_HERESTRING);
+    return (depth > 0) || (state == PARSE_STRING) || (state == PARSE_REGEX) || (state == PARSE_HERESTRING);
 }
 
 - (int) depth
@@ -9232,7 +9233,8 @@ static id regexWithString(NSString *string)
     [partial setString:@""];
     depth = 0;
     parens = 0;
-    
+    skipSpacesAfterNL = NO;
+
     [readerMacroStack removeAllObjects];
     
     int i;
@@ -9548,11 +9550,12 @@ static NSUInteger nu_parse_escape_sequences(NSString *string, NSUInteger i, NSUI
     if (!string) return [NSNull null];            // don't crash, at least.
     
     column = 0;
-    if (state != PARSE_REGEX)
-        [partial setString:@""];
-    else
+    if ((state == PARSE_REGEX) || (state == PARSE_STRING))
         [partial autorelease];
-    
+    else {
+        [partial setString:@""];
+    }
+
     NSUInteger i = 0;
     NSUInteger imax = [string length];
     for (i = 0; i < imax; i++) {
@@ -9588,6 +9591,7 @@ static NSUInteger nu_parse_escape_sequences(NSString *string, NSUInteger i, NSUI
                     case '"':
                     {
                         state = PARSE_STRING;
+                        skipSpacesAfterNL = NO;
                         parseEscapes = YES;
                         [partial setString:@""];
                         break;
@@ -9597,6 +9601,7 @@ static NSUInteger nu_parse_escape_sequences(NSString *string, NSUInteger i, NSUI
                     {
                         if ((i+1 < imax) && ([string characterAtIndex:i+1] == '"')) {
                             state = PARSE_STRING;
+                            skipSpacesAfterNL = NO;
                             parseEscapes = (stri == '+');
                             [partial setString:@""];
                             i++;
@@ -9785,23 +9790,28 @@ static NSUInteger nu_parse_escape_sequences(NSString *string, NSUInteger i, NSUI
                     case '"':
                     {
                         state = PARSE_NORMAL;
-                        NSString *string = [NSString stringWithString:partial];
-                        //NSLog(@"parsed string:%@:", string);
-                        [self addAtom:string];
+                        [self addAtom: [NSString stringWithString: partial]];
                         [partial setString:@""];
                         break;
                     }
                     case '\n':
+                    case '\t':
+                    case ' ':
                     {
-                        column = 0;
-                        linenum++;
-                        NSString *string = [[NSString alloc] initWithString:partial];
-                        [NSException raise:@"NuParseError" format:@"partial string (terminated by newline): %@", string];
-                        [partial setString:@""];
+                        if (! skipSpacesAfterNL) {
+                            [partial appendCharacter:stri];
+                        }
                         break;
                     }
                     case '\\':
                     {                             // parse escape sequences in strings
+                        skipSpacesAfterNL = NO;
+                        if (((i+1) >= imax) || ([string characterAtIndex: i+1] == '\n')) 
+                        {
+                            skipSpacesAfterNL = YES;
+                            ++i;
+                        }
+                        else 
                         if (parseEscapes) {
                             i = nu_parse_escape_sequences(string, i, imax, partial);
                         }
@@ -9812,6 +9822,7 @@ static NSUInteger nu_parse_escape_sequences(NSString *string, NSUInteger i, NSUI
                     }
                     default:
                     {
+                        skipSpacesAfterNL = NO;
                         [partial appendCharacter:stri];
                     }
                 }
@@ -9888,7 +9899,9 @@ static NSUInteger nu_parse_escape_sequences(NSString *string, NSUInteger i, NSUI
         state = PARSE_NORMAL;
     }
     else if (state == PARSE_STRING) {
-        [NSException raise:@"NuParseError" format:@"partial string (terminated by newline): %@", partial];
+        // [NSException raise:@"NuParseError" format:@"partial string (terminated by newline): %@", partial];
+        if (! skipSpacesAfterNL) [partial appendCharacter:'\n'];
+        [partial retain];
     }
     else if (state == PARSE_HERESTRING) {
         if (hereStringOpened) {
